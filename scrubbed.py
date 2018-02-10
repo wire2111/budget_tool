@@ -14,7 +14,7 @@ use this to do budget after
 #=--
 
 
-testing = 123
+testing = 1234
 debug = 1
 current_bank_total = 8536.95
 print('')
