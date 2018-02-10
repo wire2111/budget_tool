@@ -11,12 +11,6 @@ use this to do budget after
 
 '''
 
-def dprint(text):
-	if debug == 1:
-		pprint.pprint(text, width=200)
-
-#=--
-
 #--= create records dict
 '''
 TODO import from txt files the transaction records from all accounts
