@@ -1,3 +1,5 @@
+import argparse
+
 #--= main todo
 '''
 import all transactions
@@ -8,16 +10,6 @@ get total transaction values for each category
 use this to do budget after
 
 '''
-#=--
-
-debug = 0
-current_bank_total = 8536.95
-print('')
-print('current bank: %s' % current_bank_total)
-
-#--= global functions
-
-
 
 def dprint(text):
 	if debug == 1:
