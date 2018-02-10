@@ -13,21 +13,6 @@ use this to do budget after
 
 #=--
 
-
-testing = 1
-debug = 1
-current_bank_total = 8536.95
-print('')
-print('current bank: %s' % current_bank_total)
-
-#--= global functions # MUCH NEEDED GLOBAL FUNCTIONS
-
-
-
-def dprint(text):
-	if debug == 1:
-		pprint.pprint(text, width=200)
-
 #=--
 
 
