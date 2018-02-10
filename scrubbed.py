@@ -1,3 +1,5 @@
+import argparse
+
 #--= main todo
 '''
 import all transactions
@@ -8,6 +10,7 @@ get total transaction values for each category
 use this to do budget after
 
 '''
+
 #=--
 
 
@@ -17,7 +20,7 @@ current_bank_total = 8536.95
 print('')
 print('current bank: %s' % current_bank_total)
 
-#--= global functions
+#--= global functions # MUCH NEEDED GLOBAL FUNCTIONS
 
 
 
@@ -26,6 +29,7 @@ def dprint(text):
 		pprint.pprint(text, width=200)
 
 #=--
+
 
 #--= create records dict
 '''
