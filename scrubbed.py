@@ -2,7 +2,6 @@
 
 import argparse
 import sys
-# import os, etc
 
 '''
 import all transactions
@@ -30,7 +29,6 @@ class Transaction(object):
 
     def __str__(self):
         return 'Date: {} Entity: {} Amount: {}'.format(self.date, self.entity, self.amount)
-# might want to change def __str__ and/or def __repr__ for easy formatting
 
 
 class AccountReporter(object):
