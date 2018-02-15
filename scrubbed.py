@@ -28,6 +28,8 @@ class Transaction(object):
         self.amount = amount
         self.notes = notes
 
+    def __str__(self):
+        return 'Date: {} Entity: {} Amount: {}'.format(self.date, self.entity, self.amount)
 # might want to change def __str__ and/or def __repr__ for easy formatting
 
 
@@ -43,21 +45,31 @@ class AccountReporter(object):
                             help="Save directory for reports")
         args = parser.parse_args(argv)
         self.balance_sheets, self.save = args.balance_sheets, args.save
-        self.transactions = set()
-        # set because we do not want to allow duplicate
-        # transactions, and we can easily overwrite them
+        self.transactions = []  # list of transaction objects
         self.net_balance = 0
         self.net_expenditures = 0
         self.net_income = 0
 
     def parse_balance_sheets(self):
-        pass
-        # parses balance sheets from self.files,
+        for balance_sheet in self.balance_sheets:
+            self.parse_balance_sheet(balance_sheet)
+        # parses balance sheets from self.balance_sheets,
         # updates self vars, most importantly self.transactions
         # returns 0 if success, some error if failure
 
     def parse_balance_sheet(self, balance_sheet):
-        pass
+        fo = open(balance_sheet, mode='r')
+        for line in fo:
+            fields = line.split('\t')
+            length = len(fields)
+            if length == 5:  # i dont want this magic number
+                date, name, debit, credit, balance = fields
+            elif length == 4:  # i dont want this magic number either!
+                date, name, debit, credit = fields
+            # need to convert debit/credit numbers to remove comma, make it an empty string if nothing exists etc
+            # how to handle this best with a number of fields i can trust among many other things
+            # self.net_expenditures += debit
+            # self.net_income += credit
         # parses balance sheet from specified file path: balance_sheet
         # make sure to consider how to handle if the file path doesn't exist
         # or is the wrong file type or cannot otherwise be parsed.
@@ -81,6 +93,7 @@ def app(argv):
     # functionality when run as a script goes here
     # here's a start:
     reporter = AccountReporter(argv)
+    reporter.parse_balance_sheets()
     if reporter.balance_sheets:
         try:
             reporter.parse_balance_sheets()
