@@ -72,9 +72,16 @@ def app(argv):
     # here's a start:
     reporter = AccountReporter(argv)
     if reporter.balance_sheets:
-        reporter.parse_balance_sheets()
+        try:
+            reporter.parse_balance_sheets()
+        except Exception as e:
+            return e
     if reporter.save:
-        reporter.save_balance_report()
+        try:
+            reporter.save_balance_report()
+        except Exception as e:
+            return e
+
 
 if __name__ == '__main__':
     sys.exit(app(argv[1:]))
