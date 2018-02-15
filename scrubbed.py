@@ -18,9 +18,10 @@ use this to do budget after
 # might want to add functionality to it and it allows easy instantiation
 # of transactional records
 class Transaction(Object):
-    def __init__(self, date, entity, description, amount, notes):
+    def __init__(self, date, entity, category, description, amount, notes):
         self.date = date
         self.entity = entity
+        self.category = category
         self.description = description
         self.amount = amount
         self.notes = notes
@@ -60,6 +61,9 @@ class AccountReporter(Object):
 
     def save_balance_report(self):
         # saves a copy of the formatted balance report to a file
+
+    def print_category_report(self, category):
+        # this should be self-explanatory at this point
 
 etc
 
