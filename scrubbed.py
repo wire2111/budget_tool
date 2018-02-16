@@ -33,7 +33,10 @@ class Transaction(object):
         return 'Date: {} Entity: {} Amount: {}'.format(self.date, self.entity, self.amount)
 
     def __repr__(self):
-        return 'Transaction(Date: {} Entity: {} Amount: {})'.format(self.date, self.entity, self.amount)
+        return 'Transaction(Date: {} Entity: {} Amount: {} Origin: {})'.format(self.date,
+                                                                               self.entity,
+                                                                               self.amount,
+                                                                               self.balance_sheet)
 
 
 class AccountReporter(object):
@@ -89,7 +92,9 @@ class AccountReporter(object):
                     else:
                         return float(amount.replace(',', ''))
 
-                date = date.rstrip().lstrip()  # the format i am providing it in sometimes has whiteespace on this var
+                date = date.rstrip().lstrip()
+                # the format i am providing it in sometimes has white space on this var
+                # should figure out how to make this a date object so i can sort my transaction list by date
                 credit = str_to_float(credit)
                 debit = str_to_float(debit)
 
@@ -97,7 +102,7 @@ class AccountReporter(object):
 
                 self.transactions.append(Transaction(date,
                                                      entity,
-                                                     'to do still',  # category
+                                                     'to do still',  # todo category sorting
                                                      balance_sheet,
                                                      debit - credit,
                                                      'not sure'))  # notes
@@ -110,16 +115,15 @@ class AccountReporter(object):
     def print_balance_report(self):
         pass
         # prints a formatted balance report to console from transactions
+        # i dont think i can do this until i have categories for transaction objects
 
     def save_balance_report(self):
         pass
         # saves a copy of the formatted balance report to a file
+        # cant do this until i have balance reports
 
     def print_category_report(self, category):
         pass
-        # this should be self-explanatory at this point
-
-# etc
 
 
 def app(argv):
