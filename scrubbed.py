@@ -3,6 +3,7 @@
 import argparse
 import sys
 import os
+import pprint
 
 '''
 import all transactions
@@ -51,10 +52,11 @@ class AccountReporter(object):
         self.net_expenditures = 0
         self.net_income = 0
 
-    def parse_balance_sheets(self):
+    def ingest_balance_sheets(self):
         os.chdir(self.ingest_dir)
         for balance_sheet in os.listdir('.'):
             self.parse_balance_sheet(balance_sheet)
+        pprint.pprint(self.transactions)  # <-- noob working here
         # parses balance sheets from self.ingest_dir path,
         # updates self vars, most importantly self.transactions
         # returns 0 if success, some error if failure
@@ -69,7 +71,7 @@ class AccountReporter(object):
             elif length == 4:  # i dont want this magic number either!
                 date, entity, debit, credit = fields
             else:
-                continue  # deal with this problem record
+                continue  # todo deal with this problem record
 
             def str_to_float(amount):
                 if amount == '':
@@ -77,9 +79,15 @@ class AccountReporter(object):
                 else:
                     return float(amount.replace(',', ''))
 
+            date = date.rstrip().lstrip()
             credit = str_to_float(credit)
             debit = str_to_float(debit)
-            self.transactions.append(Transaction(date, entity, 'to do still', 'not sure', debit - credit, 'not sure'))
+            self.transactions.append(Transaction(date,
+                                                 entity,
+                                                 'to do still',
+                                                 balance_sheet,
+                                                 debit - credit,
+                                                 'not sure'))
             self.net_expenditures += debit
             self.net_income += credit
         # parses balance sheet from specified file path: balance_sheet
@@ -108,7 +116,7 @@ def app(argv):
     # reporter.parse_balance_sheets()  # want traceback right now
     if reporter.ingest_dir:
         try:
-            reporter.parse_balance_sheets()
+            reporter.ingest_balance_sheets()
         except Exception as e:
             return e
     if reporter.save_dir:
