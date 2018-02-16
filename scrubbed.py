@@ -30,6 +30,9 @@ class Transaction(object):
     def __str__(self):
         return 'Date: {} Entity: {} Amount: {}'.format(self.date, self.entity, self.amount)
 
+    def __repr__(self):
+        return 'Transaction(Date: {} Entity: {} Amount: {})'.format(self.date, self.entity, self.amount)
+
 
 class AccountReporter(object):
     def __init__(self, argv):
@@ -61,13 +64,23 @@ class AccountReporter(object):
             fields = line.split('\t')
             length = len(fields)
             if length == 5:  # i dont want this magic number
-                date, name, debit, credit, balance = fields
+                date, entity, debit, credit, balance = fields
             elif length == 4:  # i dont want this magic number either!
-                date, name, debit, credit = fields
-            # need to convert debit/credit numbers to remove comma, make it an empty string if nothing exists etc
-            # how to handle this best with a number of fields i can trust among many other things
-            # self.net_expenditures += debit
-            # self.net_income += credit
+                date, entity, debit, credit = fields
+            else:
+                continue  # deal with this problem record
+
+            def str_to_float(amount):
+                if amount == '':
+                    return 0
+                else:
+                    return float(amount.replace(',', ''))
+
+            credit = str_to_float(credit)
+            debit = str_to_float(debit)
+            self.transactions.append(Transaction(date, entity, 'to do still', 'not sure', debit - credit, 'not sure'))
+            self.net_expenditures += debit
+            self.net_income += credit
         # parses balance sheet from specified file path: balance_sheet
         # make sure to consider how to handle if the file path doesn't exist
         # or is the wrong file type or cannot otherwise be parsed.
@@ -91,7 +104,7 @@ def app(argv):
     # functionality when run as a script goes here
     # here's a start:
     reporter = AccountReporter(argv)
-    reporter.parse_balance_sheets()
+    # reporter.parse_balance_sheets()  # want traceback right now
     if reporter.balance_sheets:
         try:
             reporter.parse_balance_sheets()
