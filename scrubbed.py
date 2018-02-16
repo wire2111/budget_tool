@@ -47,35 +47,60 @@ class AccountReporter(object):
     def __init__(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("-ingest",
-                            default=None,
+                            default='ingest',
                             help="folder of files to ingest as transaction\
                             logs relative to script")
+        parser.add_argument("-categories",
+                            default='categories',
+                            help="folder of files to ingest as category\
+                            names with members relative to script")
         parser.add_argument("-save",
-                            default=None,
+                            default='save',
                             help="save directory for reports")
         args = parser.parse_args(argv)
-        self.ingest_dir, self.save_dir = args.ingest, args.save
-        self.transactions = []  # list of transaction objects
+        self.ingest_dir = args.ingest
+        self.categories_dir = args.categories
+        self.save_dir = args.save
+        self.transactions = []
+        self.problem_transactions = []
         self.net_balance = 0
         self.net_expenditures = 0
         self.net_income = 0
-        self.problem_transactions = []
+        self.categories = {}
+        self.ingest_files(self.categories_dir)
 
-    def ingest_balance_sheets(self):
-        if self.ingest_dir not in os.listdir('.'):
-            raise Exception('Ingest dir invalid')
-        os.chdir(self.ingest_dir)
+    def parse_categories(self, category_file):
+        filename, fileext = os.path.splitext(category_file)
+        self.categories[filename] = []
+        with open(category_file, mode='r') as fo:
+            for line in fo:
+                '''
+                line looks like this
+                'mcdonalds\n'
+                '''
+                self.categories[filename].append(line.rstrip())
+
+    def ingest_files(self, path):
+        if path not in os.listdir('.'):
+            raise Exception('Ingest dir invalid {}'.format(path))
+        os.chdir(path)
         # should this be a try:except?
         if not os.listdir('.'):
-            raise Exception('Ingest dir empty')
-        for balance_sheet in os.listdir('.'):
-            self.parse_balance_sheet(balance_sheet)
+            raise Exception('Ingest dir empty {}'.format(path))
+        for file in os.listdir('.'):
+            if self.ingest_dir == path:
+                self.parse_balance_sheet(file)
+            if self.categories_dir == path:
+                self.parse_categories(file)
+        os.chdir('..')
         if self.problem_transactions:
             pprint.pprint(self.problem_transactions)
             # use a better way after debugging to display this?
             raise Exception('Problem records please fix')
+        pprint.pprint(self.categories)  # noob here too
         pprint.pprint(self.transactions)  # <-- noob working here
-        return 0  # why specifically 0?
+        return 0
+        # this got changed to a more generic ingest files func
         # :I ingest balance sheets from self.ingest_dir path,
         # :I updates self vars, most importantly self.transactions
         # :I returns 0 if success, some error if failure
@@ -90,7 +115,10 @@ class AccountReporter(object):
                 '''
                 fields = line.split('\t')
                 if len(fields) >= 4:  # i dont want this magic number
-                    date, entity, debit, credit = fields
+                    date = fields[0]
+                    entity = fields[1]
+                    debit = fields[2]
+                    credit = fields[3]
                 else:
                     self.problem_transactions.append(line)
                     # this does not catch all problem cases at all :/
@@ -147,16 +175,20 @@ def app(argv):
     reporter = AccountReporter(argv)
     # reporter.parse_balance_sheets()  # want traceback right now
     if reporter.ingest_dir:
+        # should take this out of if? this will always
+        # have something in it now that i set default dir
         try:
-            reporter.ingest_balance_sheets()
+            reporter.ingest_files(reporter.ingest_dir)
         except Exception as e:
             return e
     print('ingest done')  # noob working here too
+    ''' not ready yet for this
     if reporter.save_dir:
         try:
             reporter.save_balance_report()
         except Exception as e:
             return e
+    '''
 
 
 if __name__ == '__main__':
