@@ -21,26 +21,27 @@ use this to do budget after
 
 
 class Transaction(object):
-    def __init__(self, date, entity, category, balance_sheet, amount, notes):
+    def __init__(self, date, entity, category, balance_sheet, amount):
         self.date = date
         self.entity = entity
         self.category = category
         self.balance_sheet = balance_sheet
         self.amount = amount
-        self.notes = notes
-
-    def __str__(self):
-        return 'Date: {} Entity: {} Amount: {}'.format(
-            self.date,
-            self.entity,
-            self.amount)
 
     def __repr__(self):
-        return 'Transaction(Date: {} Entity: {} Amount: {} Origin: {})'.format(
-            self.date,
-            self.entity,
-            self.amount,
-            self.balance_sheet)
+        retstr = ''
+        retstr += 'Transaction('
+        retstr += 'Date: {} '
+        retstr += 'Entity: {} '
+        retstr += 'Amount: {} '
+        retstr += 'Origin: {} '
+        retstr += 'Category: {})'
+        retstr = retstr.format(self.date,
+                               self.entity,
+                               self.amount,
+                               self.balance_sheet,
+                               self.category)
+        return retstr
 
 
 class AccountReporter(object):
@@ -78,7 +79,7 @@ class AccountReporter(object):
                 line looks like this
                 'mcdonalds\n'
                 '''
-                self.categories[filename].append(line.rstrip())
+                self.categories[filename].append(line.rstrip().lower())
 
     def ingest_files(self, path):
         if path not in os.listdir('.'):
@@ -97,8 +98,6 @@ class AccountReporter(object):
             pprint.pprint(self.problem_transactions)
             # use a better way after debugging to display this?
             raise Exception('Problem records please fix')
-        pprint.pprint(self.categories)  # noob here too
-        pprint.pprint(self.transactions)  # <-- noob working here
         return 0
         # this got changed to a more generic ingest files func
         # :I ingest balance sheets from self.ingest_dir path,
@@ -134,7 +133,7 @@ class AccountReporter(object):
                 debit = convert_amount(debit)
 
                 date = date.rstrip().lstrip()
-                entity = entity.rstrip().lstrip()
+                entity = entity.rstrip().lstrip().lower()
                 '''
                 the format i am providing it in sometimes has white space on
                 these vars left and right
@@ -142,13 +141,17 @@ class AccountReporter(object):
                 sort my transaction list by date?
                 is this the right way of 'sanitizing' these inputs?
                 '''
+                for k, v in self.categories.items():
+                    for name in v:
+                        if name in entity:
+                            category = k
+
                 self.transactions.append(Transaction(
                     date,
                     entity,
-                    'to do still',  # todo category sorting
+                    category,
                     balance_sheet,
-                    debit - credit,
-                    'not sure'))  # notes
+                    debit - credit))
                 self.net_expenditures += debit
                 self.net_income += credit
         # :I parses balance sheet from specified file path: balance_sheet
@@ -173,7 +176,7 @@ def app(argv):
     # :I functionality when run as a script goes here
     # :I here's a start:
     reporter = AccountReporter(argv)
-    # reporter.parse_balance_sheets()  # want traceback right now
+    # reporter.ingest_files(reporter.ingest_dir)  # want traceback right now
     if reporter.ingest_dir:
         # should take this out of if? this will always
         # have something in it now that i set default dir
@@ -182,6 +185,7 @@ def app(argv):
         except Exception as e:
             return e
     print('ingest done')  # noob working here too
+    pprint.pprint(reporter.transactions)
     ''' not ready yet for this
     if reporter.save_dir:
         try:
