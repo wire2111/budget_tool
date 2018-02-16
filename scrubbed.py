@@ -15,9 +15,9 @@ use this to do budget after
 
 '''
 
-# this form of transaction is essentially a dictionary, but you
-# might want to add functionality to it and it allows easy instantiation
-# of transactional records
+# :I this form of transaction is essentially a dictionary, but you
+# :I might want to add functionality to it and it allows easy instantiation
+# :I of transactional records
 
 
 class Transaction(object):
@@ -65,6 +65,7 @@ class AccountReporter(object):
         if self.ingest_dir not in os.listdir('.'):
             raise Exception('Ingest dir invalid')
         os.chdir(self.ingest_dir)
+        # should this be a try:except?
         if not os.listdir('.'):
             raise Exception('Ingest dir empty')
         for balance_sheet in os.listdir('.'):
@@ -75,42 +76,44 @@ class AccountReporter(object):
             raise Exception('Problem records please fix')
         pprint.pprint(self.transactions)  # <-- noob working here
         return 0  # why specifically 0?
-        # ingest balance sheets from self.ingest_dir path,
-        # updates self vars, most importantly self.transactions
-        # returns 0 if success, some error if failure
+        # :I ingest balance sheets from self.ingest_dir path,
+        # :I updates self vars, most importantly self.transactions
+        # :I returns 0 if success, some error if failure
 
     def parse_balance_sheet(self, balance_sheet):
         with open(balance_sheet, mode='r') as fo:
             for line in fo:
+                '''
+                line looks like this:
+                'Feb 02, 2018\tSOBEYS LIQUOR #\t45.13\t\t$8,536.95'
+                date,entity,debit,credit,balance
+                '''
                 fields = line.split('\t')
-                length = len(fields)
-                if length == 5:  # i dont want this magic number
-                    date, entity, debit, credit, balance = fields
-                elif length == 4:  # i dont want this magic number either!
+                if len(fields) >= 4:  # i dont want this magic number
                     date, entity, debit, credit = fields
                 else:
                     self.problem_transactions.append(line)
                     # this does not catch all problem cases at all :/
                     continue
 
-                def str_to_float(amount):
+                def convert_amount(amount):
                     if amount == '':
                         return 0
                     else:
                         return float(amount.replace(',', ''))
 
+                credit = convert_amount(credit)
+                debit = convert_amount(debit)
+
                 date = date.rstrip().lstrip()
+                entity = entity.rstrip().lstrip()
                 '''
                 the format i am providing it in sometimes has white space on
-                this var
-                should figure out how to make this a date object so i can sort
-                my transaction list by date
+                these vars left and right
+                should  i figure out how to make this a date object so i can
+                sort my transaction list by date?
+                is this the right way of 'sanitizing' these inputs?
                 '''
-                credit = str_to_float(credit)
-                debit = str_to_float(debit)
-
-                # is this the right way of 'sanitizing' these inputs?
-
                 self.transactions.append(Transaction(
                     date,
                     entity,
@@ -120,18 +123,18 @@ class AccountReporter(object):
                     'not sure'))  # notes
                 self.net_expenditures += debit
                 self.net_income += credit
-        # parses balance sheet from specified file path: balance_sheet
-        # make sure to consider how to handle if the file path doesn't exist
-        # or is the wrong file type or cannot otherwise be parsed.
+        # :I parses balance sheet from specified file path: balance_sheet
+        # :I make sure to consider how to handle if the file path doesn't exist
+        # :I or is the wrong file type or cannot otherwise be parsed.
 
     def print_balance_report(self):
         pass
-        # prints a formatted balance report to console from transactions
+        # :I prints a formatted balance report to console from transactions
         # i dont think i can do this until i have categories for transactions
 
     def save_balance_report(self):
         pass
-        # saves a copy of the formatted balance report to a file
+        # :I saves a copy of the formatted balance report to a file
         # cant do this until i have balance reports
 
     def print_category_report(self, category):
@@ -139,8 +142,8 @@ class AccountReporter(object):
 
 
 def app(argv):
-    # functionality when run as a script goes here
-    # here's a start:
+    # :I functionality when run as a script goes here
+    # :I here's a start:
     reporter = AccountReporter(argv)
     # reporter.parse_balance_sheets()  # want traceback right now
     if reporter.ingest_dir:
