@@ -51,6 +51,7 @@ class AccountReporter(object):
         self.net_balance = 0
         self.net_expenditures = 0
         self.net_income = 0
+        self.problem_transactions = []
 
     def ingest_balance_sheets(self):
         if self.ingest_dir not in os.listdir('.'):
@@ -58,47 +59,50 @@ class AccountReporter(object):
         os.chdir(self.ingest_dir)
         if not os.listdir('.'):
             raise Exception('Ingest dir empty')
-
         for balance_sheet in os.listdir('.'):
             self.parse_balance_sheet(balance_sheet)
+        if self.problem_transactions:
+            pprint.pprint(self.problem_transactions)  # use a better way after debugging to display this?
+            raise Exception('Problem records please fix')
         pprint.pprint(self.transactions)  # <-- noob working here
-        return  # same as return 0 i think?
-        # parses balance sheets from self.ingest_dir path,
+        return 0  # why specifically 0?
+        # ingest balance sheets from self.ingest_dir path,
         # updates self vars, most importantly self.transactions
         # returns 0 if success, some error if failure
 
     def parse_balance_sheet(self, balance_sheet):
-        fo = open(balance_sheet, mode='r')
-        for line in fo:
-            fields = line.split('\t')
-            length = len(fields)
-            if length == 5:  # i dont want this magic number
-                date, entity, debit, credit, balance = fields
-            elif length == 4:  # i dont want this magic number either!
-                date, entity, debit, credit = fields
-            else:
-                continue  # todo deal with this problem record
-
-            def str_to_float(amount):
-                if amount == '':
-                    return 0
+        with open(balance_sheet, mode='r') as fo:
+            for line in fo:
+                fields = line.split('\t')
+                length = len(fields)
+                if length == 5:  # i dont want this magic number
+                    date, entity, debit, credit, balance = fields
+                elif length == 4:  # i dont want this magic number either!
+                    date, entity, debit, credit = fields
                 else:
-                    return float(amount.replace(',', ''))
+                    self.problem_transactions.append(line)  # this does not catch all problem cases at all :/
+                    continue
 
-            date = date.rstrip().lstrip()  # the format i am providing it in sometimes has whiteespace on this var
-            credit = str_to_float(credit)
-            debit = str_to_float(debit)
+                def str_to_float(amount):
+                    if amount == '':
+                        return 0
+                    else:
+                        return float(amount.replace(',', ''))
 
-            # is this the right way of 'sanitizing' these inputs?
+                date = date.rstrip().lstrip()  # the format i am providing it in sometimes has whiteespace on this var
+                credit = str_to_float(credit)
+                debit = str_to_float(debit)
 
-            self.transactions.append(Transaction(date,
-                                                 entity,
-                                                 'to do still',  # category
-                                                 balance_sheet,
-                                                 debit - credit,
-                                                 'not sure'))  # notes
-            self.net_expenditures += debit
-            self.net_income += credit
+                # is this the right way of 'sanitizing' these inputs?
+
+                self.transactions.append(Transaction(date,
+                                                     entity,
+                                                     'to do still',  # category
+                                                     balance_sheet,
+                                                     debit - credit,
+                                                     'not sure'))  # notes
+                self.net_expenditures += debit
+                self.net_income += credit
         # parses balance sheet from specified file path: balance_sheet
         # make sure to consider how to handle if the file path doesn't exist
         # or is the wrong file type or cannot otherwise be parsed.
@@ -128,6 +132,7 @@ def app(argv):
             reporter.ingest_balance_sheets()
         except Exception as e:
             return e
+    print('ingest done')  # noob working here too
     if reporter.save_dir:
         try:
             reporter.save_balance_report()
