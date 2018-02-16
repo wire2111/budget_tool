@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import os
 
 '''
 import all transactions
@@ -37,24 +38,24 @@ class Transaction(object):
 class AccountReporter(object):
     def __init__(self, argv):
         parser = argparse.ArgumentParser()
-        parser.add_argument("-balance_sheets",
-                            nargs='+',
+        parser.add_argument("-ingest",
                             default=None,
-                            help="files to ingest as transaction logs")
+                            help="folder of files to ingest as transaction logs relative to script")
         parser.add_argument("-save",
                             default=None,
-                            help="Save directory for reports")
+                            help="save directory for reports")
         args = parser.parse_args(argv)
-        self.balance_sheets, self.save = args.balance_sheets, args.save
+        self.ingest_dir, self.save_dir = args.ingest, args.save
         self.transactions = []  # list of transaction objects
         self.net_balance = 0
         self.net_expenditures = 0
         self.net_income = 0
 
     def parse_balance_sheets(self):
-        for balance_sheet in self.balance_sheets:
+        os.chdir(self.ingest_dir)
+        for balance_sheet in os.listdir('.'):
             self.parse_balance_sheet(balance_sheet)
-        # parses balance sheets from self.balance_sheets,
+        # parses balance sheets from self.ingest_dir path,
         # updates self vars, most importantly self.transactions
         # returns 0 if success, some error if failure
 
@@ -105,12 +106,12 @@ def app(argv):
     # here's a start:
     reporter = AccountReporter(argv)
     # reporter.parse_balance_sheets()  # want traceback right now
-    if reporter.balance_sheets:
+    if reporter.ingest_dir:
         try:
             reporter.parse_balance_sheets()
         except Exception as e:
             return e
-    if reporter.save:
+    if reporter.save_dir:
         try:
             reporter.save_balance_report()
         except Exception as e:
