@@ -21,11 +21,11 @@ use this to do budget after
 
 
 class Transaction(object):
-    def __init__(self, date, entity, category, description, amount, notes):
+    def __init__(self, date, entity, category, balance_sheet, amount, notes):
         self.date = date
         self.entity = entity
         self.category = category
-        self.description = description
+        self.balance_sheet = balance_sheet
         self.amount = amount
         self.notes = notes
 
@@ -53,10 +53,16 @@ class AccountReporter(object):
         self.net_income = 0
 
     def ingest_balance_sheets(self):
+        if self.ingest_dir not in os.listdir('.'):
+            raise Exception('Ingest dir invalid')
         os.chdir(self.ingest_dir)
+        if not os.listdir('.'):
+            raise Exception('Ingest dir empty')
+
         for balance_sheet in os.listdir('.'):
             self.parse_balance_sheet(balance_sheet)
         pprint.pprint(self.transactions)  # <-- noob working here
+        return  # same as return 0 i think?
         # parses balance sheets from self.ingest_dir path,
         # updates self vars, most importantly self.transactions
         # returns 0 if success, some error if failure
@@ -79,15 +85,18 @@ class AccountReporter(object):
                 else:
                     return float(amount.replace(',', ''))
 
-            date = date.rstrip().lstrip()
+            date = date.rstrip().lstrip()  # the format i am providing it in sometimes has whiteespace on this var
             credit = str_to_float(credit)
             debit = str_to_float(debit)
+
+            # is this the right way of 'sanitizing' these inputs?
+
             self.transactions.append(Transaction(date,
                                                  entity,
-                                                 'to do still',
+                                                 'to do still',  # category
                                                  balance_sheet,
                                                  debit - credit,
-                                                 'not sure'))
+                                                 'not sure'))  # notes
             self.net_expenditures += debit
             self.net_income += credit
         # parses balance sheet from specified file path: balance_sheet
