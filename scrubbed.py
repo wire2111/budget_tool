@@ -5,20 +5,6 @@ import sys
 import os
 import pprint
 
-'''
-import all transactions
-import all categories and names
-sort transactions into categories
-get total transaction values for each category
-
-use this to do budget after
-
-'''
-
-# :I this form of transaction is essentially a dictionary, but you
-# :I might want to add functionality to it and it allows easy instantiation
-# :I of transactional records
-
 
 class Transaction(object):
     def __init__(self, date, entity, category, balance_sheet, amount):
@@ -43,6 +29,10 @@ class Transaction(object):
                                self.category)
         return retstr
 
+    # :I this form of transaction is essentially a dictionary, but you
+    # :I might want to add functionality to it and it allows easy instantiation
+    # :I of transactional records
+
 
 class AccountReporter(object):
     def __init__(self, argv):
@@ -50,20 +40,22 @@ class AccountReporter(object):
         parser.add_argument("-ingest",
                             default='ingest',
                             help="folder of files to ingest as transaction\
-                            logs relative to script")
+                            logs defaults to 'ingest'")
         parser.add_argument("-categories",
                             default='categories',
                             help="folder of files to ingest as category\
-                            names with members relative to script")
+                            names with members names defaults to 'catgories'")
         parser.add_argument("-save",
                             default='save',
-                            help="save directory for reports")
+                            help="save directory for reports defaults to \
+                            categories")
         args = parser.parse_args(argv)
         self.ingest_dir = args.ingest
         self.categories_dir = args.categories
         self.save_dir = args.save
         self.transactions = []
         self.problem_transactions = []
+        self.unknown_name_transactions = []
         self.net_balance = 0
         self.net_expenditures = 0
         self.net_income = 0
@@ -98,6 +90,9 @@ class AccountReporter(object):
             pprint.pprint(self.problem_transactions)
             # use a better way after debugging to display this?
             raise Exception('Problem records please fix')
+        if self.unknown_name_transactions:
+            pprint.pprint(self.unknown_name_transactions)
+            raise Exception("Add names to correct categories")
         return 0
         # this got changed to a more generic ingest files func
         # :I ingest balance sheets from self.ingest_dir path,
@@ -113,14 +108,15 @@ class AccountReporter(object):
                 date,entity,debit,credit,balance
                 '''
                 fields = line.split('\t')
-                if len(fields) >= 4:  # i dont want this magic number
+                if len(fields) in [4, 5]:
                     date = fields[0]
                     entity = fields[1]
                     debit = fields[2]
                     credit = fields[3]
                 else:
                     self.problem_transactions.append(line)
-                    # this does not catch all problem cases at all :/
+                    # not sure if i need to consider make sure these inputs
+                    # are likely to be correct for each var i am assigning
                     continue
 
                 def convert_amount(amount):
@@ -133,6 +129,7 @@ class AccountReporter(object):
                 debit = convert_amount(debit)
 
                 date = date.rstrip().lstrip()
+                # should this date var be a datetime object maybe?
                 entity = entity.rstrip().lstrip().lower()
                 '''
                 the format i am providing it in sometimes has white space on
@@ -141,17 +138,27 @@ class AccountReporter(object):
                 sort my transaction list by date?
                 is this the right way of 'sanitizing' these inputs?
                 '''
-                for k, v in self.categories.items():
-                    for name in v:
-                        if name in entity:
-                            category = k
 
-                self.transactions.append(Transaction(
-                    date,
-                    entity,
-                    category,
-                    balance_sheet,
-                    debit - credit))
+                def sort_to_category(entity):
+                    for category, v in self.categories.items():
+                        for name in v:
+                            if name in entity:
+                                return category
+                    return None
+
+                category = sort_to_category(entity)
+
+                trans = Transaction(
+                                date,
+                                entity,
+                                category,
+                                balance_sheet,
+                                debit - credit)
+
+                if category:
+                    self.transactions.append(trans)
+                else:
+                    self.unknown_name_transactions.append(trans)
                 self.net_expenditures += debit
                 self.net_income += credit
         # :I parses balance sheet from specified file path: balance_sheet
