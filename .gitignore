@@ -3,3 +3,5 @@ venv
 ingest
 save
 categories
+personal_budget.py
+__*

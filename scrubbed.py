@@ -4,9 +4,25 @@ import argparse
 import sys
 import os
 import pprint
+from personal_budget import budget
+
+'''
+budget = {
+    'booze': 0,
+    'fixed': 0,
+    'gas': 0,
+    'groceries': 0,
+    'interest': 0,
+    'oneoff': 0,
+    'pay': 0,
+    'payment': 0,
+    'pet': 0,
+    'restaurant': 0,
+}
+'''
 
 
-class Transaction(object):
+class Transaction():
     def __init__(self, date, entity, category, balance_sheet, amount):
         self.date = date
         self.entity = entity
@@ -34,7 +50,7 @@ class Transaction(object):
     # :I of transactional records
 
 
-class AccountReporter(object):
+class AccountReporter():
     def __init__(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("-ingest",
@@ -49,10 +65,14 @@ class AccountReporter(object):
                             default='save',
                             help="save directory for reports defaults to \
                             categories")
+        parser.add_argument("-balance",
+                            default=0,
+                            help="current bank balance")
         args = parser.parse_args(argv)
         self.ingest_dir = args.ingest
         self.categories_dir = args.categories
         self.save_dir = args.save
+        self.bank_balance = args.balance
         self.transactions = []
         self.problem_transactions = []
         self.unknown_name_transactions = []
@@ -108,7 +128,7 @@ class AccountReporter(object):
                 '''
                 line looks like this:
                 'Feb 02, 2018\tSOBEYS LIQUOR #\t45.13\t\t$8,536.95'
-                date,entity,debit,credit,balance
+                date,          entity,         debit,credit,balance
                 '''
                 fields = line.split('\t')
                 if len(fields) in [4, 5]:
@@ -173,21 +193,30 @@ class AccountReporter(object):
         # :I or is the wrong file type or cannot otherwise be parsed.
 
     def print_balance_report(self):
-        pass
+        def build_ret(category):
+            return category + ': {}\n'.format(budget[category] +
+                                              self.category_totals[category])
+        retstr = ''
+        for category in budget:
+            retstr += build_ret(category)
+        print('\nbalance report:\n')
+        print(retstr)
+        return
         # :I prints a formatted balance report to console from transactions
         # i dont think i can do this until i have categories for transactions
 
-    def save_balance_report(self):
-        pass
-        # :I saves a copy of the formatted balance report to a file
-        # cant do this until i have balance reports
-
     def print_category_report(self, category):
         if category == 'all':
+            print('\nall transactions ingested:\n')
             for transaction in self.transactions:
                 print(transaction)
             return
+        if category == 'totals':
+            print('\ntransaction expenditure totals:\n')
+            for k, v in self.category_totals.items():
+                print('{}: {}'.format(k, v))
         elif category in self.categories:
+            print('\nall transactions from category: {}\n'.format(category))
             for transaction in self.transactions:
                 if transaction.category == category:
                     print(transaction)
@@ -209,7 +238,8 @@ def app(argv):
             return e
     print('ingest done')  # noob working here too
     reporter.print_category_report('all')
-    pprint.pprint(reporter.category_totals)
+    reporter.print_category_report('totals')
+    reporter.print_balance_report()
     ''' not ready yet for this
     if reporter.save_dir:
         try:
