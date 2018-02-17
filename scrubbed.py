@@ -73,6 +73,8 @@ class AccountReporter(object):
                 'mcdonalds\n'
                 '''
                 self.categories[filename].append(line.rstrip().lower())
+        for category in self.categories:
+            self.category_totals[category] = 0
 
     def ingest_files(self, path):
         if path not in os.listdir('.'):
@@ -159,7 +161,7 @@ class AccountReporter(object):
 
                 if category:
                     self.transactions.append(trans)
-                    self.category_totals[category] = credit-debit
+                    self.category_totals[category] += credit-debit
                     # i thought to do this now so i dont have to loop through
                     # transactions again, is this wrong?
                 else:
@@ -185,7 +187,7 @@ class AccountReporter(object):
             for transaction in self.transactions:
                 print(transaction)
             return
-        elif category in self.categories.keys():
+        elif category in self.categories:
             for transaction in self.transactions:
                 if transaction.category == category:
                     print(transaction)
@@ -206,7 +208,7 @@ def app(argv):
         except Exception as e:
             return e
     print('ingest done')  # noob working here too
-    reporter.print_category_report('groceries')
+    reporter.print_category_report('all')
     pprint.pprint(reporter.category_totals)
     ''' not ready yet for this
     if reporter.save_dir:
