@@ -60,6 +60,7 @@ class AccountReporter(object):
         self.net_expenditures = 0
         self.net_income = 0
         self.categories = {}
+        self.category_totals = {}
         self.ingest_files(self.categories_dir)
 
     def parse_categories(self, category_file):
@@ -116,7 +117,8 @@ class AccountReporter(object):
                 else:
                     self.problem_transactions.append(line)
                     # not sure if i need to consider make sure these inputs
-                    # are likely to be correct for each var i am assigning
+                    # are likely to be correct type for each var i am assigning
+                    # or how i would do that
                     continue
 
                 def convert_amount(amount):
@@ -153,10 +155,13 @@ class AccountReporter(object):
                                 entity,
                                 category,
                                 balance_sheet,
-                                debit - credit)
+                                credit-debit)
 
                 if category:
                     self.transactions.append(trans)
+                    self.category_totals[category] = credit-debit
+                    # i thought to do this now so i dont have to loop through
+                    # transactions again, is this wrong?
                 else:
                     self.unknown_name_transactions.append(trans)
                 self.net_expenditures += debit
@@ -176,7 +181,16 @@ class AccountReporter(object):
         # cant do this until i have balance reports
 
     def print_category_report(self, category):
-        pass
+        if category == 'all':
+            for transaction in self.transactions:
+                print(transaction)
+            return
+        elif category in self.categories.keys():
+            for transaction in self.transactions:
+                if transaction.category == category:
+                    print(transaction)
+            return
+        return
 
 
 def app(argv):
@@ -192,7 +206,8 @@ def app(argv):
         except Exception as e:
             return e
     print('ingest done')  # noob working here too
-    pprint.pprint(reporter.transactions)
+    reporter.print_category_report('groceries')
+    pprint.pprint(reporter.category_totals)
     ''' not ready yet for this
     if reporter.save_dir:
         try:
