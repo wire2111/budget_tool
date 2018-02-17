@@ -14,7 +14,7 @@ budget = {
     'groceries': 0,
     'interest': 0,
     'oneoff': 0,
-    'pay': 0,
+    'pay': -0,
     'payment': 0,
     'pet': 0,
     'restaurant': 0,
@@ -66,6 +66,7 @@ class AccountReporter():
                             help="save directory for reports defaults to \
                             categories")
         parser.add_argument("-balance",
+                            type=int,
                             default=0,
                             help="current bank balance")
         args = parser.parse_args(argv)
@@ -82,6 +83,7 @@ class AccountReporter():
         self.categories = {}
         self.category_totals = {}
         self.ingest_files(self.categories_dir)
+        self.balance_totals = {}
 
     def parse_categories(self, category_file):
         filename, fileext = os.path.splitext(category_file)
@@ -116,6 +118,8 @@ class AccountReporter():
         if self.unknown_name_transactions:
             pprint.pprint(self.unknown_name_transactions)
             raise Exception("Add names to correct categories")
+        if self.ingest_dir == path:
+            self.build_balance_totals()
         return 0
         # this got changed to a more generic ingest files func
         # :I ingest balance sheets from self.ingest_dir path,
@@ -192,13 +196,16 @@ class AccountReporter():
         # :I make sure to consider how to handle if the file path doesn't exist
         # :I or is the wrong file type or cannot otherwise be parsed.
 
+    def build_balance_totals(self):
+        for category in budget:
+            self.balance_totals[category] = (budget[category] +
+                                             self.category_totals[category])
+
     def print_balance_report(self):
-        def build_ret(category):
-            return category + ': {}\n'.format(budget[category] +
-                                              self.category_totals[category])
         retstr = ''
         for category in budget:
-            retstr += build_ret(category)
+            retstr += (category + ': {:.2f}\n'
+                       .format(self.balance_totals[category]))
         print('\nbalance report:\n')
         print(retstr)
         return
@@ -214,7 +221,7 @@ class AccountReporter():
         if category == 'totals':
             print('\ntransaction expenditure totals:\n')
             for k, v in self.category_totals.items():
-                print('{}: {}'.format(k, v))
+                print('{}: {:.2f}'.format(k, v))
         elif category in self.categories:
             print('\nall transactions from category: {}\n'.format(category))
             for transaction in self.transactions:
@@ -222,6 +229,20 @@ class AccountReporter():
                     print(transaction)
             return
         return
+
+    def print_available_balance(self):
+        remaining_budgeted = 0
+        full_budget = 0
+        for category in budget:
+            if category not in ['interest', 'oneoff', 'pay', 'payment']:
+                full_budget += budget[category]
+                if self.category_totals[category] > 0:
+                    remaining_budgeted += self.category_totals[category]
+        available = self.bank_balance - remaining_budgeted - full_budget
+        if available > 0:
+            print('available for transfer:\n{:.2f}'.format(available))
+        else:
+            print('nothing available')
 
 
 def app(argv):
@@ -240,6 +261,7 @@ def app(argv):
     reporter.print_category_report('all')
     reporter.print_category_report('totals')
     reporter.print_balance_report()
+    reporter.print_available_balance()
     ''' not ready yet for this
     if reporter.save_dir:
         try:
