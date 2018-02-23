@@ -23,16 +23,17 @@ budget = {
 
 
 class Transaction():
-    def __init__(self, date, entity, category, balance_sheet, amount):
-        self.date = date
-        self.entity = entity
-        self.category = category
+    def __init__(self, date, entity, category, balance_sheet, credit, debit, reporter):
+        self.date = date.rstrip().lstrip()
+        self.entity = entity.rstrip().lstrip().lower()
+        self.category = self.sort_to_category(self.entity, reporter.categories)
         self.balance_sheet = balance_sheet
-        self.amount = amount
+        self.debit = self.convert_amount(debit)
+        self.credit = self.convert_amount(credit)
+        self.amount = self.credit - self.debit
 
     def __repr__(self):
-        retstr = ''
-        retstr += 'Transaction('
+        retstr = 'Transaction('
         retstr += 'Date: {} '
         retstr += 'Entity: {} '
         retstr += 'Amount: {} '
@@ -45,9 +46,18 @@ class Transaction():
                                self.category)
         return retstr
 
-    # :I this form of transaction is essentially a dictionary, but you
-    # :I might want to add functionality to it and it allows easy instantiation
-    # :I of transactional records
+    def convert_amount(self, amount):
+        if amount == '':
+            return 0
+        else:
+            return float(amount.replace(',', ''))
+
+    def sort_to_category(self, entity, categories_dict):
+        for category, v in categories_dict.items():
+            for name in v:
+                if name in entity:
+                    return category
+        return ''
 
 
 class AccountReporter():
@@ -64,7 +74,7 @@ class AccountReporter():
         parser.add_argument("-save",
                             default='save',
                             help="save directory for reports defaults to \
-                            categories")
+                            save")
         parser.add_argument("-balance",
                             type=int,
                             default=0,
@@ -82,13 +92,41 @@ class AccountReporter():
         self.net_income = 0
         self.categories = {}
         self.category_totals = {}
-        self.ingest_files(self.categories_dir)
         self.balance_totals = {}
+        self.validate_dir(self.categories_dir)
+        self.validate_dir(self.ingest_dir)
+        self.ingest_files()
+        self.build_balance_totals()
+
+    def validate_dir(self, path_dir_name):
+        current_dir_contents = os.listdir('.')
+        if path_dir_name not in current_dir_contents:
+            raise Exception('Ingest dir invalid {}'.format(path_dir_name))
+        path_dir_contents = os.listdir(path_dir_name)
+        if path_dir_contents == []:
+            raise Exception('Ingest dir empty {}'.format(path_dir_name))
+
+    def ingest_files(self):
+        categories_dir_files = os.listdir(self.categories_dir)
+        for file in categories_dir_files:
+            self.parse_categories(file)
+        ingest_dir_files = os.listdir(self.ingest_dir)
+        for file in ingest_dir_files:
+            self.parse_balance_sheet(file)
+        if not self.problem_transactions == []:
+            pprint.pprint(self.problem_transactions)
+            # use a better way after debugging to display this?
+            raise Exception('Problem records please fix')
+        if not self.unknown_name_transactions == []:
+            pprint.pprint(self.unknown_name_transactions)
+            raise Exception("Add names to correct categories")
+        return 0
 
     def parse_categories(self, category_file):
         filename, fileext = os.path.splitext(category_file)
         self.categories[filename] = []
-        with open(category_file, mode='r') as fo:
+        file_path = self.categories_dir + os.sep + category_file
+        with open(file_path, mode='r') as fo:
             for line in fo:
                 '''
                 line looks like this
@@ -98,36 +136,9 @@ class AccountReporter():
         for category in self.categories:
             self.category_totals[category] = 0
 
-    def ingest_files(self, path):
-        if path not in os.listdir('.'):
-            raise Exception('Ingest dir invalid {}'.format(path))
-        os.chdir(path)
-        # should this be a try:except?
-        if not os.listdir('.'):
-            raise Exception('Ingest dir empty {}'.format(path))
-        for file in os.listdir('.'):
-            if self.ingest_dir == path:
-                self.parse_balance_sheet(file)
-            if self.categories_dir == path:
-                self.parse_categories(file)
-        os.chdir('..')
-        if self.problem_transactions:
-            pprint.pprint(self.problem_transactions)
-            # use a better way after debugging to display this?
-            raise Exception('Problem records please fix')
-        if self.unknown_name_transactions:
-            pprint.pprint(self.unknown_name_transactions)
-            raise Exception("Add names to correct categories")
-        if self.ingest_dir == path:
-            self.build_balance_totals()
-        return 0
-        # this got changed to a more generic ingest files func
-        # :I ingest balance sheets from self.ingest_dir path,
-        # :I updates self vars, most importantly self.transactions
-        # :I returns 0 if success, some error if failure
-
     def parse_balance_sheet(self, balance_sheet):
-        with open(balance_sheet, mode='r') as fo:
+        balance_sheet_path = self.ingest_dir + os.sep + balance_sheet
+        with open(balance_sheet_path, mode='r') as fo:
             for line in fo:
                 '''
                 line looks like this:
@@ -142,59 +153,21 @@ class AccountReporter():
                     credit = fields[3]
                 else:
                     self.problem_transactions.append(line)
-                    # not sure if i need to consider make sure these inputs
-                    # are likely to be correct type for each var i am assigning
-                    # or how i would do that
                     continue
-
-                def convert_amount(amount):
-                    if amount == '':
-                        return 0
-                    else:
-                        return float(amount.replace(',', ''))
-
-                credit = convert_amount(credit)
-                debit = convert_amount(debit)
-
-                date = date.rstrip().lstrip()
-                # should this date var be a datetime object maybe?
-                entity = entity.rstrip().lstrip().lower()
-                '''
-                the format i am providing it in sometimes has white space on
-                these vars left and right
-                should  i figure out how to make this a date object so i can
-                sort my transaction list by date?
-                is this the right way of 'sanitizing' these inputs?
-                '''
-
-                def sort_to_category(entity):
-                    for category, v in self.categories.items():
-                        for name in v:
-                            if name in entity:
-                                return category
-                    return None
-
-                category = sort_to_category(entity)
-
-                trans = Transaction(
-                                date,
-                                entity,
-                                category,
-                                balance_sheet,
-                                credit-debit)
-
-                if category:
+                trans = Transaction(date,
+                                    entity,
+                                    '',
+                                    balance_sheet,
+                                    debit,
+                                    credit,
+                                    self)
+                if not trans.category == '':
                     self.transactions.append(trans)
-                    self.category_totals[category] += credit-debit
-                    # i thought to do this now so i dont have to loop through
-                    # transactions again, is this wrong?
+                    self.category_totals[trans.category] += trans.credit-trans.debit
                 else:
                     self.unknown_name_transactions.append(trans)
-                self.net_expenditures += debit
-                self.net_income += credit
-        # :I parses balance sheet from specified file path: balance_sheet
-        # :I make sure to consider how to handle if the file path doesn't exist
-        # :I or is the wrong file type or cannot otherwise be parsed.
+                self.net_expenditures += trans.debit
+                self.net_income += trans.credit
 
     def build_balance_totals(self):
         for category in budget:
@@ -209,8 +182,6 @@ class AccountReporter():
         print('\nbalance report:\n')
         print(retstr)
         return
-        # :I prints a formatted balance report to console from transactions
-        # i dont think i can do this until i have categories for transactions
 
     def print_category_report(self, category):
         if category == 'all':
@@ -246,29 +217,11 @@ class AccountReporter():
 
 
 def app(argv):
-    # :I functionality when run as a script goes here
-    # :I here's a start:
     reporter = AccountReporter(argv)
-    # reporter.ingest_files(reporter.ingest_dir)  # want traceback right now
-    if reporter.ingest_dir:
-        # should take this out of if? this will always
-        # have something in it now that i set default dir
-        try:
-            reporter.ingest_files(reporter.ingest_dir)
-        except Exception as e:
-            return e
-    print('ingest done')  # noob working here too
     reporter.print_category_report('all')
     reporter.print_category_report('totals')
     reporter.print_balance_report()
     reporter.print_available_balance()
-    ''' not ready yet for this
-    if reporter.save_dir:
-        try:
-            reporter.save_balance_report()
-        except Exception as e:
-            return e
-    '''
 
 
 if __name__ == '__main__':
