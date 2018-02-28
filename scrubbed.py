@@ -22,7 +22,7 @@ budget = {
 '''
 
 
-class Transaction():
+class Transaction:
     """ creates transaction object representing a single transaction with
     correct var types """
     def __init__(self, date, entity, balance_sheet, credit, debit, reporter):
@@ -61,7 +61,7 @@ class Transaction():
         return ''
 
 
-class AccountReporter():
+class AccountReporter:
     """ creates handler for parsing account input and categories/member names
     then comparing to planned budget """
     def __init__(self, argv):
@@ -108,7 +108,7 @@ class AccountReporter():
         if path_dir_name not in current_dir_contents:
             raise Exception(f'Ingest dir invalid {path_dir_name}')
         path_dir_contents = os.listdir(path_dir_name)
-        if path_dir_contents == []:
+        if not path_dir_contents:
             raise Exception(f'Ingest dir empty {path_dir_name}')
 
     def ingest_files(self):
@@ -171,7 +171,7 @@ class AccountReporter():
                                     self)
                 if trans.category:
                     self.transactions.append(trans)
-                    self.category_totals[trans.category] += trans.credit-trans.debit
+                    self.category_totals[trans.category] += trans.amount
                 else:
                     self.unknown_name_transactions.append(trans)
                 self.net_expenditures += trans.debit
