@@ -23,7 +23,9 @@ budget = {
 
 
 class Transaction():
-    def __init__(self, date, entity, category, balance_sheet, credit, debit, reporter):
+    """ creates transaction object representing a single transaction with
+    correct var types """
+    def __init__(self, date, entity, balance_sheet, credit, debit, reporter):
         self.date = date.rstrip().lstrip()
         self.entity = entity.rstrip().lstrip().lower()
         self.category = self.sort_to_category(self.entity, reporter.categories)
@@ -34,33 +36,34 @@ class Transaction():
 
     def __repr__(self):
         retstr = 'Transaction('
-        retstr += 'Date: {} '
-        retstr += 'Entity: {} '
-        retstr += 'Amount: {} '
-        retstr += 'Origin: {} '
-        retstr += 'Category: {})'
-        retstr = retstr.format(self.date,
-                               self.entity,
-                               self.amount,
-                               self.balance_sheet,
-                               self.category)
+        retstr += f'Date: {self.date} '
+        retstr += f'Entity: {self.entity} '
+        retstr += f'Amount: {self.amount} '
+        retstr += f'Origin: {self.balance_sheet} '
+        retstr += f'Category: {self.category})'
         return retstr
 
     def convert_amount(self, amount):
+        """ converts a string value to a float """
         if amount == '':
             return 0
         else:
             return float(amount.replace(',', ''))
 
     def sort_to_category(self, entity, categories_dict):
-        for category, v in categories_dict.items():
-            for name in v:
+        """ takes a categories dict of str lists and matches to a category
+        based on any entry of str list being a substring of transaction
+        entity name """
+        for category, list_of_names in categories_dict.items():
+            for name in list_of_names:
                 if name in entity:
                     return category
         return ''
 
 
 class AccountReporter():
+    """ creates handler for parsing account input and categories/member names
+    then comparing to planned budget """
     def __init__(self, argv):
         parser = argparse.ArgumentParser()
         parser.add_argument("-ingest",
@@ -99,30 +102,35 @@ class AccountReporter():
         self.build_balance_totals()
 
     def validate_dir(self, path_dir_name):
+        """ takes a dir name relative to . and confirms it exists and is
+        not empty - raises an exception if either fail """
         current_dir_contents = os.listdir('.')
         if path_dir_name not in current_dir_contents:
-            raise Exception('Ingest dir invalid {}'.format(path_dir_name))
+            raise Exception(f'Ingest dir invalid {path_dir_name}')
         path_dir_contents = os.listdir(path_dir_name)
         if path_dir_contents == []:
-            raise Exception('Ingest dir empty {}'.format(path_dir_name))
+            raise Exception(f'Ingest dir empty {path_dir_name}')
 
     def ingest_files(self):
+        """ ingests files for categories_dict = category:[names] and then
+        account input into [transaction objects] raise exception if any
+        unparseable input due to problem record length or unmatchable
+        category """
         categories_dir_files = os.listdir(self.categories_dir)
         for file in categories_dir_files:
             self.parse_categories(file)
         ingest_dir_files = os.listdir(self.ingest_dir)
         for file in ingest_dir_files:
             self.parse_balance_sheet(file)
-        if not self.problem_transactions == []:
+        if self.problem_transactions:
             pprint.pprint(self.problem_transactions)
-            # use a better way after debugging to display this?
             raise Exception('Problem records please fix')
-        if not self.unknown_name_transactions == []:
+        if self.unknown_name_transactions:
             pprint.pprint(self.unknown_name_transactions)
             raise Exception("Add names to correct categories")
-        return 0
 
     def parse_categories(self, category_file):
+        """ parse category files into category_dict """
         filename, fileext = os.path.splitext(category_file)
         self.categories[filename] = []
         file_path = self.categories_dir + os.sep + category_file
@@ -137,6 +145,7 @@ class AccountReporter():
             self.category_totals[category] = 0
 
     def parse_balance_sheet(self, balance_sheet):
+        """ parse account input into transaction object list """
         balance_sheet_path = self.ingest_dir + os.sep + balance_sheet
         with open(balance_sheet_path, mode='r') as fo:
             for line in fo:
@@ -156,12 +165,11 @@ class AccountReporter():
                     continue
                 trans = Transaction(date,
                                     entity,
-                                    '',
                                     balance_sheet,
                                     debit,
                                     credit,
                                     self)
-                if not trans.category == '':
+                if trans.category:
                     self.transactions.append(trans)
                     self.category_totals[trans.category] += trans.credit-trans.debit
                 else:
@@ -170,20 +178,24 @@ class AccountReporter():
                 self.net_income += trans.credit
 
     def build_balance_totals(self):
+        """ creates dict with difference between planned budget and expenditure
+        so far """
         for category in budget:
             self.balance_totals[category] = (budget[category] +
                                              self.category_totals[category])
 
     def print_balance_report(self):
+        """ print balance dict representing difference between planned budget
+        and expenditure so far """
         retstr = ''
         for category in budget:
-            retstr += (category + ': {:.2f}\n'
-                       .format(self.balance_totals[category]))
+            retstr += f'{category}: {self.balance_totals[category]:.2f}\n'
         print('\nbalance report:\n')
         print(retstr)
         return
 
     def print_category_report(self, category):
+        """ ugh prints various crap """
         if category == 'all':
             print('\nall transactions ingested:\n')
             for transaction in self.transactions:
@@ -192,9 +204,9 @@ class AccountReporter():
         if category == 'totals':
             print('\ntransaction expenditure totals:\n')
             for k, v in self.category_totals.items():
-                print('{}: {:.2f}'.format(k, v))
+                print(f'{k}: {v:.2f}')
         elif category in self.categories:
-            print('\nall transactions from category: {}\n'.format(category))
+            print(f'\nall transactions from category: {category}\n')
             for transaction in self.transactions:
                 if transaction.category == category:
                     print(transaction)
@@ -202,6 +214,7 @@ class AccountReporter():
         return
 
     def print_available_balance(self):
+        """ prints what can be transferred from bank right now """
         remaining_budgeted = 0
         full_budget = 0
         for category in budget:
@@ -211,7 +224,7 @@ class AccountReporter():
                     remaining_budgeted += self.category_totals[category]
         available = self.bank_balance - remaining_budgeted - full_budget
         if available > 0:
-            print('available for transfer:\n{:.2f}'.format(available))
+            print(f'available for transfer:\n{available:.2f}')
         else:
             print('nothing available')
 
