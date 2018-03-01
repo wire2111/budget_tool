@@ -179,9 +179,11 @@ class AccountReporter():
 
     def print_all_transactions(self):
         """ prints all transaction objects """
+        self.print_seperator()
         print('\nall transactions ingested:\n')
         for transaction in self.transactions:
             print(transaction)
+        self.print_seperator()
 
     def print_category_totals(self):
         """ prints category totals report """
@@ -189,6 +191,8 @@ class AccountReporter():
         print('negative is total spent, positive is total gained\n')
         for k, v in self.category_totals.items():
             print(f'{k}: {v:.2f}')
+        print('')
+        self.print_seperator()
 
     def print_balance_report(self):
         """ print balance dict representing difference between planned budget
@@ -199,6 +203,7 @@ class AccountReporter():
         print('\nbalance report:')
         print('negative is over budget, positive is remaining budgeted\n')
         print(retstr)
+        self.print_seperator()
 
     def print_available_balance(self):
         """ prints what can be transferred from bank right now """
@@ -210,11 +215,12 @@ class AccountReporter():
                 if self.category_totals[category] > 0:
                     remaining_budgeted += self.category_totals[category]
         available = self.bank_balance - remaining_budgeted - full_budget
-        print('available balance to transfer:')
+        print('\navailable balance to transfer:')
         if available > 0:
-            print(f'{available:.2f}')
+            print(f'{available:.2f}\n')
         else:
-            print('0')
+            print('0\n')
+        self.print_seperator()
 
     def print_transactions_from_category(self, category):
         """ prints transactiosn from the given category """
@@ -225,6 +231,9 @@ class AccountReporter():
                     print(transaction)
         else:
             raise Exception("invalid category requested")
+
+    def print_seperator(self):
+        print('=' * 100)
 
 
 def app(argv):
