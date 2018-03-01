@@ -1,7 +1,2 @@
-.idea
-venv
-ingest
-save
-categories
-personal_budget.py
-__*
+__pycache__
+test_files.zip
